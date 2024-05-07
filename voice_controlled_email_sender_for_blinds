@@ -1,0 +1,95 @@
+import streamlit as st
+import speech_recognition as sr
+import pyttsx3
+from email.message import EmailMessage
+import smtplib
+
+listener = sr.Recognizer()
+engine = pyttsx3.init()
+
+
+def talk(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def get_info(timeout=5):
+    try:
+        with sr.Microphone() as source:
+            st.write('Listening...')
+            talk('Listening....')
+            voice = listener.listen(source, timeout=timeout)
+            info = listener.recognize_google(voice)
+            st.write(info)
+            talk(info)
+            return info.lower()
+    except sr.WaitTimeoutError:
+        st.write("Sorry, I didn't hear anything. Please try again.")
+        talk("Sorry, I didn't hear anything. Please try again.")
+        return None
+    except sr.UnknownValueError:
+        st.write("Sorry, I couldn't understand what you said.")
+        talk("Sorry, I couldn't understand what you said. Please try again.")
+        return None
+    except sr.RequestError:
+        st.write("Sorry, there was an error with the speech recognition service.")
+        talk("Sorry, there was an error with the speech recognition service. Please try again.")
+        return None
+
+
+
+def send_email(receiver, subject, message):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+
+    # Replace with your actual credentials (store securely using environment variables)
+  server.login('youremail@gmail.com', 'password')  # Placeholder credentials
+
+    email = EmailMessage()
+  email['From'] = 'example@gmail.com'
+    email['To'] = receiver
+    email['Subject'] = subject
+    email.set_content(message)
+    server.send_message(email)
+
+
+email_list = {
+    'recipient1': 'repcipient1@gmail.com',
+   'recipient2': 'repcipient2@gmail.com',
+  'recipient3': 'repcipient3@gmail.com',
+  'recipient4': 'repcipient4@gmail.com',
+}
+
+
+st.title("Voice-based Email Sender")
+def get_email_info():
+    while True:
+        talk('Hi, I am your assistant for today. To whom do you want to send the email?')
+        name = get_info()
+        receiver = email_list.get(name)
+        if not receiver:
+            st.write("Sorry, I couldn't find the recipient in the list.")
+            talk("Sorry, I couldn't find the recipient in the list. Please try again.")
+            continue
+
+        talk('What is the subject of your email?')
+        subject = get_info()
+        st.write(f"Subject: {subject}")
+
+        talk('Tell me the text in your email')
+        message = get_info()
+        st.write(f"Message: {message}")
+
+        send_email(receiver, subject, message)
+        talk('Thank you for using me. Your email has been sent.')
+
+        talk('Do you want to send more email?')
+        send_more = get_info()
+        if send_more and 'no' in send_more:
+            talk('Okay, have a nice day ahead!')
+            st.write('---')
+            break
+        elif not send_more or 'yes' not in send_more:
+            talk("Sorry, I couldn't understand your response. Please say yes or no.")
+            continue
+
+get_email_info()
